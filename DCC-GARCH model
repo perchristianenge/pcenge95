@@ -1,0 +1,20 @@
+uspec.n = multispec(replicate(2, ugarchspec(mean.model = list(armaOrder = c(1,0)))))
+spec3 = ugarchspec(mean.model = list(armaOrder = c(0,0)))
+spec4 = ugarchspec(mean.model = list(armaOrder = c(1,1)))
+uspec.n = multispec(c(spec3, spec4))
+multf = multifit(uspec.n, weeklyboth.xts)
+spec1 = dccspec(uspec = uspec.n, dccOrder = c(1,1), distribution = 'mvnorm')
+fit1 = dccfit(spec1, data = weeklyboth.xts, fit.control = list(eval.se = TRUE), fit = multf)
+
+out.xts <- xts(matrix(NA, nrow=(nrow(weeklyboth.xts)*0.25), ncol = 3), order.by = index(weeklyboth.xts[(nrow(weeklyboth.xts)*0.75+1):nrow(weeklyboth.xts),]))
+colnames(out.xts) <- c("variance future", "covar", "varSpot")
+xIndexEnd <- (nrow(weeklyboth.xts)*0.75)
+
+for (i in 1:(nrow(weeklyboth.xts)*0.25)){
+  multfTemp = multifit(uspec.n, weeklyboth.xts[i:(xIndexEnd+i)])
+  fitTemp = dccfit(spec1, data = weeklyboth.xts[i:(xIndexEnd+i)], fit.control = list(eval.se = TRUE), fit = multfTemp)
+  dccfTemp <- dccforecast(fitTemp, n.ahead = 1)
+  out.xts[i,1] <-  as.matrix(dccfTemp@mforecast$H[[1]])[1,1]
+  out.xts[i,2] <-  as.matrix(dccfTemp@mforecast$H[[1]])[2,1]
+  out.xts[i,3] <-  as.matrix(dccfTemp@mforecast$H[[1]])[4,1]
+}
